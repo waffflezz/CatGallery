@@ -15,5 +15,12 @@ data class BreedRequest(
     val name: String,
     val origin: String,
     val temperament: String,
-    val wilipedia_url: String
+    val wikipedia_url: String
+) {
+
+}
+
+data class CategoriesRequest(
+    val id: Int?,
+    val name: String
 )

@@ -4,7 +4,6 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,33 +21,29 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -64,14 +58,17 @@ import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import ru.sfu.waffflezz.catgallery.Utils
 import ru.sfu.waffflezz.catgallery.components.CatCard
+import ru.sfu.waffflezz.catgallery.components.ExpandableContainer
 import ru.sfu.waffflezz.catgallery.data.CardViewModel
+import ru.sfu.waffflezz.catgallery.data.api.CardRequest
+import ru.sfu.waffflezz.catgallery.viewmodels.FilterScreenViewModel
 import ru.sfu.waffflezz.catgallery.viewmodels.MainScreenViewModel
-import kotlin.math.absoluteValue
 
 @Composable
 fun HomeScreen(
     mainScreenViewModel: MainScreenViewModel,
-    navController: NavController
+    navController: NavController,
+    cardViewModel: CardViewModel
 ) {
     val catCards by remember { mainScreenViewModel.rememberCatCards }
 
@@ -101,8 +98,8 @@ fun HomeScreen(
             ) { card ->
                 CatCard(
                     cardRequest = card,
-                    mainScreenViewModel,
-                    navController
+                    navController,
+                    cardViewModel
                 )
             }
         }
@@ -111,72 +108,70 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CatsScreen() {
-    var text by remember { mutableStateOf("") }
+fun CatsScreen(
+    navController: NavController,
+    filterScreenViewModel: FilterScreenViewModel,
+    cardViewModel: CardViewModel
+) {
+    val catCards by remember { filterScreenViewModel.rememberFilteredCatCards }
 
-    Column(
+    val refreshing = remember { filterScreenViewModel.refreshing }
 
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
+    Column {
+        ExpandableContainer(viewModel = filterScreenViewModel)
+        SwipeRefresh(
+            state = rememberSwipeRefreshState(isRefreshing = refreshing.value),
+            onRefresh = { filterScreenViewModel.refreshFilteredCatCards() }
         ) {
-            TextField(
+            LazyColumn(
                 modifier = Modifier
-                    .fillMaxWidth(),
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Setting 1") }
-            )
-            TextField(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Setting 2") }
-            )
-            TextField(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                value = text,
-                onValueChange = { text = it },
-                label = { Text("Setting 3") }
-            )
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround
+                    .fillMaxSize()
+                    .padding(4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Button(
-                    onClick = { /*TODO*/ }
-                ) {
-                    Text(text = "Сбросить")
-                }
-                Button(
-                    modifier = Modifier.width(160.dp),
-                    onClick = { /*TODO*/ }
-                ) {
-                    Text(text = "Найти")
+                items(
+                    catCards,
+                    key = {
+                        it.id
+                    }
+                ) { card ->
+                    CatCard(
+                        cardRequest = card,
+                        navController,
+                        cardViewModel
+                    )
                 }
             }
         }
-
-//        LazyColumn(content = )
     }
 }
 
 @Composable
 fun FavoriteScreen(
-    cardViewModel: CardViewModel = viewModel(factory = CardViewModel.factory)
+    cardViewModel: CardViewModel,
+    navController: NavController
 ) {
-    Text(
+    val catCards = cardViewModel.cardsList.collectAsState(initial = emptyList())
+
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .wrapContentHeight(),
-        text = "Favorite Screen",
-        textAlign = TextAlign.Center
-    )
+            .padding(4.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(
+            catCards.value,
+            key = {
+                it.id
+            }
+        ) { card ->
+            CatCard(
+                cardRequest = Utils.fromEntityToRequest(card),
+                navController,
+                cardViewModel
+            )
+        }
+    }
 }
 
 
@@ -184,10 +179,21 @@ fun FavoriteScreen(
 @Composable
 fun FullScreenCard(
     userId: String?,
-    mainScreenViewModel: MainScreenViewModel
+    mainScreenViewModel: MainScreenViewModel,
+    filterScreenViewModel: FilterScreenViewModel,
+    cardViewModel: CardViewModel
 ) {
-    println("FullScreenCard")
-    val cardRequest = mainScreenViewModel.getCatCardById(userId!!)
+    val cardRequest = if (mainScreenViewModel.getCatCardById(userId!!) == null) {
+        filterScreenViewModel.getCatCardById(userId)
+    } else {
+        mainScreenViewModel.getCatCardById(userId)
+    }
+
+    val isFavorite = remember { mutableStateOf(false) }
+
+    cardViewModel.hasCardById(userId) {
+        isFavorite.value = true
+    }
 
     Column(
         modifier = Modifier
@@ -269,7 +275,7 @@ fun FullScreenCard(
             horizontalArrangement = Arrangement.End
         ) {
             Icon(
-                imageVector = Icons.Rounded.FavoriteBorder,
+                imageVector = if (!isFavorite.value) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite,
                 contentDescription = "Favorite",
                 modifier = Modifier
                     .size(48.dp)

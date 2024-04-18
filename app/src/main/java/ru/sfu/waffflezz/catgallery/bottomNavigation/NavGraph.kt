@@ -9,13 +9,17 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import ru.sfu.waffflezz.catgallery.data.CardViewModel
+import ru.sfu.waffflezz.catgallery.viewmodels.FilterScreenViewModel
 import ru.sfu.waffflezz.catgallery.viewmodels.MainScreenViewModel
 
 @Composable
 fun NavGraph(
     navHostController: NavHostController,
     innerPadding: PaddingValues,
-    mainScreenViewModel: MainScreenViewModel
+    mainScreenViewModel: MainScreenViewModel,
+    filterScreenViewModel: FilterScreenViewModel,
+    cardViewModel: CardViewModel
 ) {
     NavHost(
         navController = navHostController,
@@ -23,13 +27,24 @@ fun NavGraph(
         Modifier.padding(innerPadding)
     ) {
         composable(Routes.HomeScreenRoute) {
-            HomeScreen(mainScreenViewModel, navController = navHostController)
+            HomeScreen(
+                mainScreenViewModel,
+                navController = navHostController,
+                cardViewModel
+            )
         }
         composable(Routes.CatsScreenRoute) {
-            CatsScreen()
+            CatsScreen(
+                navHostController,
+                filterScreenViewModel,
+                cardViewModel
+            )
         }
         composable(Routes.FavoriteScreenRoute) {
-            FavoriteScreen()
+            FavoriteScreen(
+                cardViewModel,
+                navHostController
+            )
         }
         composable(
             Routes.CardScreenRouteGraph,
@@ -37,7 +52,9 @@ fun NavGraph(
         ) { backStackEntry ->
             FullScreenCard(
                 backStackEntry.arguments?.getString(Routes.CardScreenRouteArgument),
-                mainScreenViewModel
+                mainScreenViewModel,
+                filterScreenViewModel,
+                cardViewModel
             )
         }
         composable(Routes.SettingsScreenRoute) {

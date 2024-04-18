@@ -20,4 +20,7 @@ interface Dao {
 
     @Query("SELECT * FROM card_table")
     fun getAllCards(): Flow<List<CardEntity>>
+
+    @Query("SELECT COUNT(*) FROM card_table WHERE id = :cardId")
+    suspend fun hasCardById(cardId: String): Boolean
 }

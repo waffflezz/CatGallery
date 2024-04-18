@@ -10,7 +10,7 @@ import androidx.room.RoomDatabase
     entities = [
         CardEntity::class
     ],
-    version = 1
+    version = 2
 )
 abstract class CatGalleryDatabase : RoomDatabase() {
     abstract val dao: Dao
@@ -21,7 +21,9 @@ abstract class CatGalleryDatabase : RoomDatabase() {
                 context,
                 CatGalleryDatabase::class.java,
                 "main.db"
-            ).build()
+            )
+                .fallbackToDestructiveMigration()
+                .build()
         }
     }
 }

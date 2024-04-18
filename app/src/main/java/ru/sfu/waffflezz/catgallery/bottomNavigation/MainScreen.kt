@@ -21,13 +21,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import ru.sfu.waffflezz.catgallery.R
+import ru.sfu.waffflezz.catgallery.data.CardViewModel
+import ru.sfu.waffflezz.catgallery.viewmodels.FilterScreenViewModel
 import ru.sfu.waffflezz.catgallery.viewmodels.MainScreenViewModel
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
-    mainScreenViewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.factory)
+    mainScreenViewModel: MainScreenViewModel = viewModel(factory = MainScreenViewModel.factory),
+    filterScreenViewModel: FilterScreenViewModel = viewModel<FilterScreenViewModel>(),
+    cardViewModel: CardViewModel = viewModel(factory = CardViewModel.factory)
 ) {
     val navController = rememberNavController()
     Scaffold (
@@ -73,7 +77,9 @@ fun MainScreen(
         NavGraph(
             navHostController = navController,
             innerPadding,
-            mainScreenViewModel
+            mainScreenViewModel,
+            filterScreenViewModel,
+            cardViewModel
         )
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -17,6 +18,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -32,6 +35,7 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import ru.sfu.waffflezz.catgallery.R
 import ru.sfu.waffflezz.catgallery.bottomNavigation.Routes
+import ru.sfu.waffflezz.catgallery.data.CardViewModel
 import ru.sfu.waffflezz.catgallery.data.api.CardRequest
 import ru.sfu.waffflezz.catgallery.viewmodels.MainScreenViewModel
 
@@ -40,9 +44,16 @@ import ru.sfu.waffflezz.catgallery.viewmodels.MainScreenViewModel
 @Composable
 fun CatCard(
     cardRequest: CardRequest,
-    mainScreenViewModel: MainScreenViewModel,
-    navController: NavController
+    navController: NavController,
+    cardViewModel: CardViewModel
 ) {
+    /* TODO: написать метод проверки реквеста в базе данных. Если он там есть, то менять favorite */
+    val isFavorite = remember { mutableStateOf(false) }
+
+    cardViewModel.hasCardById(cardRequest.id) {
+        isFavorite.value = true
+    }
+
     Card (
         modifier = Modifier
             .fillMaxWidth()
@@ -73,15 +84,6 @@ fun CatCard(
                 contentDescription = "Meow",
                 placeholder = painterResource(id = R.drawable.punpun)
             )
-//            Image(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(250.dp),
-//                contentScale = ContentScale.Crop,
-//                alignment = Alignment.Center,
-//                painter = rememberAsyncImagePainter(cardRequest.url),
-//                contentDescription = "Cat",
-//            )
             Row (
                 modifier = Modifier
                     .fillMaxWidth()
@@ -95,9 +97,17 @@ fun CatCard(
                         SuggestionChip(onClick = { /*TODO*/ }, label = { Text(text = temperamentText) })
                     }
                 }
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = {
+                    if (!isFavorite.value) {
+                        cardViewModel.insertItem(cardRequest)
+                        isFavorite.value = !isFavorite.value
+                    } else {
+                        cardViewModel.deleteItem(cardRequest)
+                        isFavorite.value = !isFavorite.value
+                    }
+                }) {
                     Icon(
-                        Icons.Rounded.FavoriteBorder,
+                        if (!isFavorite.value) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite,
                         contentDescription = null)
                 }
             }

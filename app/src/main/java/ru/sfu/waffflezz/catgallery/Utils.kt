@@ -1,6 +1,9 @@
 package ru.sfu.waffflezz.catgallery
 
 import com.google.android.gms.maps.model.LatLng
+import ru.sfu.waffflezz.catgallery.data.CardEntity
+import ru.sfu.waffflezz.catgallery.data.api.BreedRequest
+import ru.sfu.waffflezz.catgallery.data.api.CardRequest
 
 class Utils {
     companion object {
@@ -26,5 +29,41 @@ class Utils {
             "Somalia" to LatLng(5.152149, 46.199616),
             "Turkey" to LatLng(38.963744999999996, 35.243322)
         )
+
+        fun fromRequestToEntity(request: CardRequest): CardEntity {
+            return CardEntity(
+                request.id,
+                request.url,
+                request.width,
+                request.height,
+                request.breeds[0].description,
+                request.breeds[0].id,
+                request.breeds[0].life_span,
+                request.breeds[0].name,
+                request.breeds[0].origin,
+                request.breeds[0].temperament,
+                request.breeds[0].wikipedia_url
+            )
+        }
+
+        fun fromEntityToRequest(entity: CardEntity): CardRequest {
+            return CardRequest(
+                entity.id,
+                entity.url,
+                entity.width,
+                entity.height,
+                listOf(
+                    BreedRequest(
+                        entity.description,
+                        entity.id,
+                        entity.life_span,
+                        entity.name,
+                        entity.origin,
+                        entity.temperament,
+                        entity.wikipedia_url
+                    )
+                )
+            )
+        }
     }
 }
