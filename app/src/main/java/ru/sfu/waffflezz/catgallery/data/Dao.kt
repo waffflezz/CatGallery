@@ -9,6 +9,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface Dao {
+    @Query("SELECT * FROM card_table WHERE id = :cardId")
+    fun getCardById(cardId: String): Flow<CardEntity>
+
     @Insert
     suspend fun insertCard(cardEntity: CardEntity)
 

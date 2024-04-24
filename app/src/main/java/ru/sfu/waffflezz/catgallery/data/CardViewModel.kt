@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import ru.sfu.waffflezz.catgallery.App
 import ru.sfu.waffflezz.catgallery.Utils
@@ -18,6 +20,13 @@ class CardViewModel(private val database: CatGalleryDatabase) : ViewModel() {
 //        /* TODO: Make from launched effect */
 //        database.dao.insertCard(Utils.fromRequestToEntity(cardRequest))
 //    }
+
+//    fun getCardById(cardId: String): Flow<CardEntity?> {
+//        return database.dao.getCardById(cardId)
+//    }
+    fun getCardById(cardId: String): Flow<CardEntity> {
+        return database.dao.getCardById(cardId)
+    }
 
     fun hasCardById(cardId: String, callback: () -> Unit) = viewModelScope.launch {
         if (database.dao.hasCardById(cardId)) {

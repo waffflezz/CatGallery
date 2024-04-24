@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -23,8 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SuggestionChip
@@ -42,10 +42,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.google.accompanist.swiperefresh.SwipeRefresh
@@ -60,7 +58,6 @@ import ru.sfu.waffflezz.catgallery.Utils
 import ru.sfu.waffflezz.catgallery.components.CatCard
 import ru.sfu.waffflezz.catgallery.components.ExpandableContainer
 import ru.sfu.waffflezz.catgallery.data.CardViewModel
-import ru.sfu.waffflezz.catgallery.data.api.CardRequest
 import ru.sfu.waffflezz.catgallery.viewmodels.FilterScreenViewModel
 import ru.sfu.waffflezz.catgallery.viewmodels.MainScreenViewModel
 
@@ -183,15 +180,23 @@ fun FullScreenCard(
     filterScreenViewModel: FilterScreenViewModel,
     cardViewModel: CardViewModel
 ) {
-    val cardRequest = if (mainScreenViewModel.getCatCardById(userId!!) == null) {
+    var cardRequest by remember { mutableStateOf( if (mainScreenViewModel.getCatCardById(userId!!) == null) {
         filterScreenViewModel.getCatCardById(userId)
     } else {
         mainScreenViewModel.getCatCardById(userId)
+    })}
+
+    val cardRequestFromDB by cardViewModel.getCardById(userId!!).collectAsState(initial = null)
+
+    LaunchedEffect(key1 = cardRequestFromDB) {
+        if (cardRequestFromDB != null) {
+            cardRequest = Utils.fromEntityToRequest(cardRequestFromDB!!)
+        }
     }
 
     val isFavorite = remember { mutableStateOf(false) }
 
-    cardViewModel.hasCardById(userId) {
+    cardViewModel.hasCardById(userId!!) {
         isFavorite.value = true
     }
 
@@ -201,88 +206,97 @@ fun FullScreenCard(
             .padding(16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        // Название породы
-        Text(
-            text = cardRequest!!.breeds[0].name,
-            style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        if (cardRequest == null) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            // Название породы
+            Text(
+                text = cardRequest!!.breeds[0].name,
+                style = TextStyle(fontSize = 24.sp, fontWeight = FontWeight.Bold),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        val catHabit = Utils.mapOfOrigins[cardRequest.breeds[0].origin] ?: LatLng(1.35, 103.87)
-        val cameraPositionState = rememberCameraPositionState {
-            position = CameraPosition.fromLatLngZoom(catHabit, 3f)
-        }
+            val catHabit = Utils.mapOfOrigins[cardRequest!!.breeds[0].origin] ?: LatLng(1.35, 103.87)
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(catHabit, 3f)
+            }
 
-        val pagerState = rememberPagerState(pageCount = {
-            2
-        })
-        HorizontalPager(
-            state = pagerState,
-            contentPadding = PaddingValues(horizontal = 16.dp),
-        ) { page ->
-            when (page) {
-                0 -> Image(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp),
-                    contentScale = ContentScale.Crop,
-                    alignment = Alignment.Center,
-                    painter = rememberAsyncImagePainter(cardRequest.url),
-                    contentDescription = "Cat",
-                )
-                1 -> GoogleMap(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp),
-                    cameraPositionState = cameraPositionState
-                ) {
-                    Marker(
-                        state = MarkerState(position = catHabit),
-                        title = cardRequest.breeds[0].origin
+            val pagerState = rememberPagerState(pageCount = {
+                2
+            })
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 16.dp),
+            ) { page ->
+                when (page) {
+                    0 -> Image(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp),
+                        contentScale = ContentScale.Crop,
+                        alignment = Alignment.Center,
+                        painter = rememberAsyncImagePainter(cardRequest!!.url),
+                        contentDescription = "Cat",
                     )
+                    1 -> GoogleMap(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp),
+                        cameraPositionState = cameraPositionState
+                    ) {
+                        Marker(
+                            state = MarkerState(position = catHabit),
+                            title = cardRequest!!.breeds[0].origin
+                        )
+                    }
                 }
             }
-        }
 
-        // Место обитания
-        Text(
-            text = "Origin: ${cardRequest.breeds[0].origin}",
-            style = TextStyle(fontSize = 20.sp),
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+            // Место обитания
+            Text(
+                text = "Origin: ${cardRequest!!.breeds[0].origin}",
+                style = TextStyle(fontSize = 20.sp),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
 
-        // Описание породы
-        Text(
-            text = cardRequest.breeds[0].description,
-            style = TextStyle(fontSize = 24.sp),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+            // Описание породы
+            Text(
+                text = cardRequest!!.breeds[0].description,
+                style = TextStyle(fontSize = 24.sp),
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
 
-        // Характер
-        LazyRow(
-            modifier = Modifier.padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            // Характер
+            LazyRow(
+                modifier = Modifier.padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
 
-            items(cardRequest.breeds[0].temperament.split(", ")) { temperamentText ->
-                SuggestionChip(onClick = { /*TODO*/ }, label = { Text(text = temperamentText) })
+                items(cardRequest!!.breeds[0].temperament.split(", ")) { temperamentText ->
+                    SuggestionChip(onClick = { /*TODO*/ }, label = { Text(text = temperamentText) })
+                }
+            }
+
+            // Иконка сердечка
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Icon(
+                    imageVector = if (!isFavorite.value) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite,
+                    contentDescription = "Favorite",
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clickable { /* TODO: */ } // Делаем иконку кликабельной
+                )
             }
         }
-
-        // Иконка сердечка
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Icon(
-                imageVector = if (!isFavorite.value) Icons.Rounded.FavoriteBorder else Icons.Rounded.Favorite,
-                contentDescription = "Favorite",
-                modifier = Modifier
-                    .size(48.dp)
-                    .clickable { /* TODO: */ } // Делаем иконку кликабельной
-            )
         }
-    }
 }
 
 @Composable
